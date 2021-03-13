@@ -1,10 +1,8 @@
-import logo from './logo.svg';
 import './App.css';
-import React, {useState } from 'react'
+import React, {useState} from 'react'
 import { Stage, Layer,Rect, Text, Line,Image } from 'react-konva';
 import useImage from 'use-image'
 
-var SCALE=1
 var SMS_NO=0
 var CURRENT_SMS_NO=0
 var SMS_TEXT={}
@@ -19,33 +17,27 @@ class Rectangle2 extends React.Component{
     this.state={x:props.x,y:props.y,text:'Rectangle'+props.number.toString(),color:'Red',newxy:props.newxy,number:props.number,childs:0}
     this.handleClick = this.handleClick.bind(this);
     this.handleClickPlus = this.handleClickPlus.bind(this);
+    this.incrementChild = this.incrementChild.bind(this);
   }
-  smsChanger(smsno){
-    const sms=document.getElementById('smstext')
-    if (SMS_TEXT[smsno]==undefined){
-      sms.value=''
-    
-    }
-  else{
-    sms.value=SMS_TEXT[smsno]
-  }
-  }
+
+  
   handleClick(){
 
     this.props.setBoxType(this.props.type)
-    if (this.props.type=='action'){
-      CURRENT_SMS_NO=this.state.sms_no
-      this.smsChanger(this.state.sms_no)
-    }
+
 
     }
 
 
   handleClickPlus(){
   if (this.state.childs<1){
-    this.state.newxy(this.state.x,this.state.y+140,this.state.number+1,'action','test')
-    this.setState({childs:this.state.childs+1})
+    this.state.newxy(this.state.x,this.state.y+140,this.state.number+1,'action',this.incrementChild)
+    
+
   }
+  }
+  incrementChild(){
+    this.setState({childs:this.state.childs+1})
   }
   drawLine(){
     if (this.state.childs<1) {
@@ -60,6 +52,10 @@ class Rectangle2 extends React.Component{
           stroke="black"
         />
         )
+    }
+    plusImage(){
+      return (<PlusImage x={parseInt(this.state.x)+88} y={parseInt(this.state.y)+95} handleClick={this.handleClickPlus}/>)
+
     }
     
 
@@ -79,16 +75,13 @@ class Rectangle2 extends React.Component{
 
       <Text text={this.state.text} fontSize={15} x={parseInt(this.state.x)+50} y={parseInt(this.state.y)+40} fill="white" onClick={this.handleClick}/>
         {this.drawLine()}
-      <PlusImage x={parseInt(this.state.x)+88} y={parseInt(this.state.y)+95} handleClick={this.handleClickPlus}/>
+        {this.plusImage()}
+      
       </>
       )
     }
 }
 class Contacts extends Rectangle2{
-  constructor(props){
-    super(props)
-    
-  }
     componentDidMount() { 
       this.setState({color:'grey'})
       this.setState({text:'Selected Contacts'})
@@ -106,14 +99,47 @@ class Action extends Rectangle2{
       this.setState({color:'green'})
       this.setState({text:'Send SMS '+SMS_NO})
       SMS_NO+=1
+
      }
+    smsChanger(smsno){
+      const sms=document.getElementById('smstext')
+      if (SMS_TEXT[smsno]==undefined){
+       sms.value=''
+    
+     }
+    else{
+      sms.value=SMS_TEXT[smsno]
+    }
+  }
+     handleClick(){
+      super.handleClick()
+      if (this.props.type=='action'){
+      
+      CURRENT_SMS_NO=this.state.sms_no
+      this.props.setSmsNo(this.state.sms_no)
+
+      
+      this.smsChanger(this.state.sms_no)
+    }
+  }
+}
+class Complete extends Rectangle2{
+  constructor(props){
+    super(props)
+    this.setState({text:'Marked Complete'})
+    
+  }
+    componentDidMount() { 
+
+      this.setState({color:'darkgrey'})
+      this.setState({text:'Marked Complete'})
+     }
+  plusImage(){
+    return null
+  }
 }
 
-
 function Sidebar(props){
-
-
-
   
   const smsChange=(e)=>{
       SMS_TEXT[CURRENT_SMS_NO]=e.target.value
@@ -136,17 +162,21 @@ function Sidebar(props){
       </div>
       )
     }
-    else{
+    if (props.type=="action"){
         return (
         <div>
-            <h3> SMS {CURRENT_SMS_NO}</h3>
+            <h3> SMS{props.current_sms_no}</h3>
           <form>
             <textarea  placeholder='sms_text' id='smstext' rows="6" maxLength="160" onChange={smsChange}  value={SMS_TEXT[CURRENT_SMS_NO]}></textarea>
           </form>
         </div>
       )
     }
+    else{
+      return (<h3> Marked Complete</h3>)
     }
+    }
+
 
   
   return (
@@ -157,16 +187,30 @@ function Sidebar(props){
 }
 
 
-
 function Temp(){
   const [modal_closed,setModalClose]=useState(true)
+  const [action_trigger,setActionTrigger]=useState({})
+    const closeModal=()=>{
+      setModalClose(true)
+    }
+    
+
+  const actionYes=(type)=>{
+    const tempFlowchart2=flowchart2
+    const temp_action=(action_trigger[0])
+    action_trigger[1]()
+    temp_action['type']=type
+    tempFlowchart2.push(temp_action)
+     
+     
+    updateFlowchart2([...flowchart2])
+    
+     closeModal()
+  }
 
   const Modal=(props)=>{
     if (modal_closed){
       return null
-    }
-    const closeModal=()=>{
-      setModalClose(true)
     }
 
 
@@ -174,44 +218,56 @@ function Temp(){
       <div className='modal'>
         <h1>{props.title}</h1>
         <p>{props.content}</p>
-        <button onClick={ closeModal} className='closebutton'>X</button>
+        <button onClick={()=>actionYes('action')} className='actionyesbutton'>Yes</button>
+        <br />
+        <br />
+        <h3>Or </h3>
+         <br />
+        <br />
+        <p>Mark Complete?</p>
+        <button onClick={()=>actionYes('complete')} className='actionyesbutton'>Complete</button>
+        <button onClick={ closeModal} className='closebutton'>x</button>
       </div>
       )
   }
 
-   const newxy=(x,y,index,type,...theArgs)=>{
-    const tempFlowchart=flowchart2
+  
+   const newxy=(x,y,index,type,childs)=>{
+      
      setModalClose(false)
-     tempFlowchart.push({x:x, y:y,number:index,newxy:newxy,type:type})
-     updateFlowchart2([...flowchart2])
+     setActionTrigger([{x:x, y:y,number:index,newxy:newxy,childs:0},childs])
     
   }
 
 
-  const [flowchart2,updateFlowchart2]=useState([{x:1000, y:10,number:0,newxy:newxy}])
+  const [flowchart2,updateFlowchart2]=useState([{x:1000, y:10,number:0,newxy:newxy,childs:0}])
   const [boxType,setBoxType]=useState('start')
+  const [current_sms_no,setSmsNo]=useState(0)
   const rectangles = flowchart2.map((item,index)=> {
     if (index==0){
-      return <Contacts x={item.x} y={item.y} number={index} newxy={newxy} type='start' setBoxType={setBoxType}/>
+      return <Contacts x={item.x} y={item.y} number={index} newxy={newxy} type='start' setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
     }
     if (item.type == 'action'){
-      return <Action x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType}/>
+      return <Action x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
+    }
+    if (item.type == 'complete'){
+      return <Complete x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
     }
     else{
-      return <Rectangle2 x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType}/>
+      return <Rectangle2 x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
     }
   })
 
 return(
   <>
-
-  <Sidebar  type={boxType}/>
+  
+  <Sidebar  type={boxType} current_sms_no={current_sms_no}/>
   <Stage width={window.innerWidth} height={window.innerHeight*3} className='stage'>
   <Layer>
     {rectangles}
   </Layer>
   </Stage>
-  <Modal title="Action" content="Create new action to send sms?"/>
+  <Modal title="Action" content="Create new action to send sms?" yesfunc={actionYes}/>
   </>
 )
 }
