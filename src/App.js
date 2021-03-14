@@ -18,6 +18,7 @@ class Rectangle2 extends React.Component{
     this.handleClick = this.handleClick.bind(this);
     this.handleClickPlus = this.handleClickPlus.bind(this);
     this.incrementChild = this.incrementChild.bind(this);
+    this.dragMove = this.dragMove.bind(this);
   }
 
   
@@ -48,6 +49,7 @@ class Rectangle2 extends React.Component{
           x={this.state.x}
           y={this.state.y+100}
           points={[100, 0,100,40]}
+          draggable
           closed
           stroke="black"
         />
@@ -57,7 +59,9 @@ class Rectangle2 extends React.Component{
       return (<PlusImage x={parseInt(this.state.x)+88} y={parseInt(this.state.y)+95} handleClick={this.handleClickPlus}/>)
 
     }
-    
+    dragMove(e){
+      this.setState({x:e.target.x(),y:e.target.y()})
+    }
 
   render(){
     return(
@@ -71,9 +75,12 @@ class Rectangle2 extends React.Component{
           height={100}
           fill={this.state.color}
           shadowBlur={5}
-         onClick={this.handleClick}/>
+         onClick={this.handleClick}
+         draggable
+         onDragMove={this.dragMove}
+         />
 
-      <Text text={this.state.text} fontSize={15} x={parseInt(this.state.x)+50} y={parseInt(this.state.y)+40} fill={this.state.text_color} onClick={this.handleClick}/>
+      <Text text={this.state.text}  fontSize={15} x={parseInt(this.state.x)+50} y={parseInt(this.state.y)+40} fill={this.state.text_color} onClick={this.handleClick}/>
         {this.drawLine()}
         {this.plusImage()}
       
@@ -184,6 +191,7 @@ class Condition extends Rectangle2{
           x={this.state.x+15}
           y={this.state.y+100}
           points={[20, 0,10,40]}
+          draggable
           closed
           stroke="black"
         />   
@@ -202,6 +210,7 @@ class Condition extends Rectangle2{
             y={this.state.y+100}
             points={[20, 0,35,40]}
             closed
+            draggable
             stroke="black"
           />
         )
