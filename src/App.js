@@ -4,7 +4,7 @@ import { Stage, Layer,Rect, Text, Line,Image } from 'react-konva';
 import useImage from 'use-image'
 
 var SMS_NO=0
-var CURRENT_SMS_NO=0
+
 var SMS_TEXT={}
 const PlusImage = ({x,y,handleClick}) => {
   const [image] = useImage('plus.png');
@@ -14,7 +14,7 @@ const PlusImage = ({x,y,handleClick}) => {
 class Rectangle2 extends React.Component{
   constructor(props){
     super(props)
-    this.state={x:props.x,y:props.y,text:'Rectangle'+props.number.toString(),color:'Red',newxy:props.newxy,number:props.number,childs:0}
+    this.state={x:props.x,y:props.y,text:'Rectangle'+props.number.toString(),color:'Red',newxy:props.newxy,number:props.number,childs:0,text_color:'white'}
     this.handleClick = this.handleClick.bind(this);
     this.handleClickPlus = this.handleClickPlus.bind(this);
     this.incrementChild = this.incrementChild.bind(this);
@@ -73,7 +73,7 @@ class Rectangle2 extends React.Component{
           shadowBlur={5}
          onClick={this.handleClick}/>
 
-      <Text text={this.state.text} fontSize={15} x={parseInt(this.state.x)+50} y={parseInt(this.state.y)+40} fill="white" onClick={this.handleClick}/>
+      <Text text={this.state.text} fontSize={15} x={parseInt(this.state.x)+50} y={parseInt(this.state.y)+40} fill={this.state.text_color} onClick={this.handleClick}/>
         {this.drawLine()}
         {this.plusImage()}
       
@@ -115,7 +115,6 @@ class Action extends Rectangle2{
       super.handleClick()
       if (this.props.type=='action'){
       
-      CURRENT_SMS_NO=this.state.sms_no
       this.props.setSmsNo(this.state.sms_no)
 
       
@@ -124,13 +123,9 @@ class Action extends Rectangle2{
   }
 }
 class Complete extends Rectangle2{
-  constructor(props){
-    super(props)
-    this.setState({text:'Marked Complete'})
-    
-  }
+ 
     componentDidMount() { 
-
+      this.setState({text:'Marked Complete'})
       this.setState({color:'darkgrey'})
       this.setState({text:'Marked Complete'})
      }
@@ -138,11 +133,109 @@ class Complete extends Rectangle2{
     return null
   }
 }
+class Delay extends Rectangle2{
+ 
+    componentDidMount() { 
+      let delay_type=this.props.delay_type
+      if (parseInt(this.props.duration)===1){
+        delay_type= (this.props.delay_type === 'days') ? 'day':'hour'
+      }
+      
+      this.setState({text:'Wait for '+this.props.duration+' '+delay_type})
+      
+      this.setState({color:'Yellow'})
+      this.setState({text_color:'black'})
+     }
+}
+class Condition extends Rectangle2{
+      constructor(props){
+        super(props)
+        this.yesHandleClickPlus = this.yesHandleClickPlus.bind(this);
+        this.noHandleClickPlus = this.noHandleClickPlus.bind(this);
+        this.yesLine = this.yesLine.bind(this);
+        this.noLine = this.noLine.bind(this);
+    
+        }
+ 
+      componentDidMount() { 
+      this.setState({text: this.props.condition_type+' SMS'})
+      
+      this.setState({color:'Blue'})
+      this.setState({yesblock:false,noblock:false})
 
+     }
+      yesHandleClickPlus(){
+        if ((this.state.childs<2) &&  (!this.state.yesblock)){
+          this.state.newxy(this.state.x-150,this.state.y+140,this.state.number+1,'action',this.incrementChild)
+          this.setState({'yesblock':true})
+          }
+      }
+      noHandleClickPlus(){
+        if ((this.state.childs<2) &&  (!this.state.noblock)){
+          this.state.newxy(this.state.x+90,this.state.y+140,this.state.number+1,'action',this.incrementChild)
+          this.setState({'noblock':true})
+          }
+      }
+      yesLine(){
+        if (this.state.yesblock)
+        {
+        return(
+            <Line
+          x={this.state.x+15}
+          y={this.state.y+100}
+          points={[20, 0,10,40]}
+          closed
+          stroke="black"
+        />   
+        )
+      }
+      return null
+
+      }
+
+      noLine(){
+        if (this.state.noblock)
+        {
+        return(
+          <Line
+            x={this.state.x+150}
+            y={this.state.y+100}
+            points={[20, 0,35,40]}
+            closed
+            stroke="black"
+          />
+        )
+      }
+      return null
+
+      }
+
+      drawLine(){
+    if (this.state.childs<1) {
+      return null
+      }
+      return(
+        <>    
+        {this.yesLine()}
+        {this.noLine()}
+
+        </>
+        )
+    }
+    plusImage(){
+      return (<>
+      <PlusImage x={parseInt(this.state.x)+20} y={parseInt(this.state.y)+95} handleClick={this.yesHandleClickPlus}/>
+      <PlusImage x={parseInt(this.state.x)+158} y={parseInt(this.state.y)+95} handleClick={this.noHandleClickPlus}/>
+      </>
+      )
+
+
+    }
+}
 function Sidebar(props){
   
   const smsChange=(e)=>{
-      SMS_TEXT[CURRENT_SMS_NO]=e.target.value
+      SMS_TEXT[props.current_sms_no]=e.target.value
   
     }
     
@@ -165,12 +258,15 @@ function Sidebar(props){
     if (props.type=="action"){
         return (
         <div>
-            <h3> SMS{props.current_sms_no}</h3>
+            <h3> SMS {props.current_sms_no}</h3>
           <form>
-            <textarea  placeholder='sms_text' id='smstext' rows="6" maxLength="160" onChange={smsChange}  value={SMS_TEXT[CURRENT_SMS_NO]}></textarea>
+            <textarea  placeholder='sms_text' id='smstext' rows="6" maxLength="160" onChange={smsChange}  value={SMS_TEXT[props.current_sms_no]}></textarea>
           </form>
         </div>
       )
+    }
+    if (props.type=="delay"){
+      return (<h3>Delay</h3>)
     }
     else{
       return (<h3> Marked Complete</h3>)
@@ -190,6 +286,8 @@ function Sidebar(props){
 function Temp(){
   const [modal_closed,setModalClose]=useState(true)
   const [action_trigger,setActionTrigger]=useState({})
+  const [delay,setDelay]=useState({'type':'days','duration':1})
+  const [condition,setCondition]=useState({type:'Read'})
     const closeModal=()=>{
       setModalClose(true)
     }
@@ -200,6 +298,14 @@ function Temp(){
     const temp_action=(action_trigger[0])
     action_trigger[1]()
     temp_action['type']=type
+    if (type === 'delay'){
+      temp_action['delay_type']=delay['type']
+      temp_action['duration']=delay['duration']
+    }
+    if (type === 'condition'){
+      temp_action['condition_type']=condition.type
+
+    }
     tempFlowchart2.push(temp_action)
      
      
@@ -207,7 +313,62 @@ function Temp(){
     
      closeModal()
   }
-
+  const delayTypeChange=(e)=>{
+    const tempdelay=delay
+    tempdelay.type=e.target.value
+    setDelay(tempdelay)
+    
+  }
+  const delayNumberOnChange=(e)=>{
+    const tempdelay=delay
+    tempdelay.duration=e.target.value
+    setDelay(tempdelay)
+    
+  }
+ const conditionTypeChange=(e)=>{
+    const tempcondition=condition
+    tempcondition.type=e.target.value
+    setCondition(tempcondition)
+  }
+  const askDelay = ()=>{
+    return (
+    <> 
+      <br />
+        <br />
+        <p>Wait For?</p>
+        <form>
+          <input type="radio"  name="delay_type" value="days" onClick={delayTypeChange}/>
+          <label hmtlFor="days">days</label>
+          <input type="radio" name="delay_type" value="hours" onClick={delayTypeChange}/>
+          <label htmlFor="hours">hours</label>
+        <input type="number"  onChange={delayNumberOnChange}/>
+        </form>
+        <button onClick={()=>actionYes('delay')} className='actionyesbutton'>Wait</button>
+         <br />
+        <br />
+         <h3>Or </h3>)
+         </>)
+  }
+  const ConditionInput = ()=>{
+    return(
+        <>
+          <br/>
+          <br/>
+          <p> Read or Click SMS?</p>
+          <form>
+          <input type="radio" name="condition" value="Read" onClick={conditionTypeChange}/>
+          <label hmtFor="Read">Read</label>
+          <input type="radio" name="condition" value="Click" onClick={conditionTypeChange}/>
+          <label htmlFor="Click">Click</label>
+          <br/>
+           
+        </form>
+        <button onClick={()=>actionYes('condition')} className='actionyesbutton'>Condition</button>
+          <br/>
+          <br/>
+        </>
+      )
+  }
   const Modal=(props)=>{
     if (modal_closed){
       return null
@@ -222,8 +383,10 @@ function Temp(){
         <br />
         <br />
         <h3>Or </h3>
-         <br />
+          {askDelay()}
         <br />
+        <br />
+        {ConditionInput()}
         <p>Mark Complete?</p>
         <button onClick={()=>actionYes('complete')} className='actionyesbutton'>Complete</button>
         <button onClick={ closeModal} className='closebutton'>x</button>
@@ -232,10 +395,10 @@ function Temp(){
   }
 
   
-   const newxy=(x,y,index,type,childs)=>{
+   const newxy=(x,y,index,type,incrementChild)=>{
       
      setModalClose(false)
-     setActionTrigger([{x:x, y:y,number:index,newxy:newxy,childs:0},childs])
+     setActionTrigger([{x:x, y:y,number:index,newxy:newxy,childs:0,type:type},incrementChild])
     
   }
 
@@ -251,7 +414,13 @@ function Temp(){
       return <Action x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
     }
     if (item.type == 'complete'){
-      return <Complete x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
+      return <Complete x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} />
+    }
+    if (item.type == 'delay'){
+      return <Delay x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} delay_type={item.delay_type} duration={item.duration}/>
+    }
+    if (item.type == 'condition'){
+      return <Condition x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} condition_type={item.condition_type}/>
     }
     else{
       return <Rectangle2 x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
@@ -267,7 +436,7 @@ return(
     {rectangles}
   </Layer>
   </Stage>
-  <Modal title="Action" content="Create new action to send sms?" yesfunc={actionYes}/>
+  <Modal title="Action" content="Create new action to send sms?"/>
   </>
 )
 }
