@@ -36,24 +36,14 @@
     transform: rotate(360deg);
   }
 }
-.sidebar{
-  height:100%;
-  width:200px;
-  background-color:#fff;
-  position:fixed!important;
-  z-index:1;
-  overflow:auto;
-  border: solid 1px;
-  background-color: grey;
-  padding:2rem;
-}
+
 .modal{
   position:absolute;
   right:25%;
   top:5%;
   left:25%;
   background-color: white;
-  padding:10rem;
+  padding:7rem;
   border:solid grey 2px;
 }
 .closebutton{
@@ -65,4 +55,7 @@
 .stage{
   position:absolute;
   top:0;
+}
+.actionyesbutton{
+  margin-top:1rem;
 }

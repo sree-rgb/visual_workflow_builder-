@@ -2,16 +2,23 @@ import './App.css';
 import React, {useState} from 'react'
 import { Stage, Layer,Rect, Text, Line,Image } from 'react-konva';
 import useImage from 'use-image'
+import {Sidebar,SMS_TEXT} from './Sidebar';
 
 var SMS_NO=0
 
-var SMS_TEXT={}
 const PlusImage = ({x,y,handleClick}) => {
   const [image] = useImage('plus.png');
   return <Image image={image} x={x} y={y} onClick={handleClick}/>;
 };
-
-class Rectangle2 extends React.Component{
+const CheckedImage = ({x,y,handleClick}) => {
+  const [image] = useImage('checked.png');
+  return <Image image={image} x={x} y={y}/>;
+};
+const CancelledImage = ({x,y,handleClick}) => {
+  const [image] = useImage('cancel.png');
+  return <Image image={image} x={x} y={y}/>;
+};
+class BasicBlock extends React.Component{
   constructor(props){
     super(props)
     this.state={x:props.x,y:props.y,text:'Rectangle'+props.number.toString(),color:'Red',newxy:props.newxy,number:props.number,childs:0,text_color:'white'}
@@ -88,18 +95,24 @@ class Rectangle2 extends React.Component{
       )
     }
 }
-class Contacts extends Rectangle2{
+class Contacts extends BasicBlock{
     componentDidMount() { 
       this.setState({color:'grey'})
       this.setState({text:'Selected Contacts'})
       
      }
 }
-class Action extends Rectangle2{
+class Action extends BasicBlock{
   constructor(props){
     super(props)
     this.state={sms_no:SMS_NO,...this.state}
+
     
+  }
+  static incrementId() {
+    if (!this.latestId) this.latestId = 0
+    else this.latestId++
+    return this.latestId
   }
     componentDidMount() { 
 
@@ -128,8 +141,15 @@ class Action extends Rectangle2{
       this.smsChanger(this.state.sms_no)
     }
   }
+    plusImage(){
+      if (this.state.childs > 0){
+        return null
+      }
+      return (<PlusImage x={parseInt(this.state.x)+88} y={parseInt(this.state.y)+95} handleClick={this.handleClickPlus}/>)
+
+    }
 }
-class Complete extends Rectangle2{
+class Complete extends BasicBlock{
  
     componentDidMount() { 
       this.setState({text:'Marked Complete'})
@@ -140,7 +160,7 @@ class Complete extends Rectangle2{
     return null
   }
 }
-class Delay extends Rectangle2{
+class Delay extends BasicBlock{
  
     componentDidMount() { 
       let delay_type=this.props.delay_type
@@ -153,8 +173,15 @@ class Delay extends Rectangle2{
       this.setState({color:'Yellow'})
       this.setState({text_color:'black'})
      }
+      plusImage(){
+        if (this.state.childs > 0){
+          return null
+        }
+      return (<PlusImage x={parseInt(this.state.x)+88} y={parseInt(this.state.y)+95} handleClick={this.handleClickPlus}/>)
+
+    }
 }
-class Condition extends Rectangle2{
+class Condition extends BasicBlock{
       constructor(props){
         super(props)
         this.yesHandleClickPlus = this.yesHandleClickPlus.bind(this);
@@ -232,67 +259,35 @@ class Condition extends Rectangle2{
         )
     }
     plusImage(){
+      const yesPlus=()=>{
+        if (this.state.yesblock){
+          return (<CheckedImage x={parseInt(this.state.x)+20} y={parseInt(this.state.y)+95} />)
+        }
+        return (<PlusImage x={parseInt(this.state.x)+20} y={parseInt(this.state.y)+95} handleClick={this.yesHandleClickPlus}/>)
+      }
+     const noPlus=()=>{
+        if (this.state.noblock){
+          return (<CancelledImage x={parseInt(this.state.x)+158} y={parseInt(this.state.y)+95} />)
+        }
+        return (<PlusImage x={parseInt(this.state.x)+158} y={parseInt(this.state.y)+95} handleClick={this.noHandleClickPlus}/>)
+      }
       return (<>
-      <PlusImage x={parseInt(this.state.x)+20} y={parseInt(this.state.y)+95} handleClick={this.yesHandleClickPlus}/>
-      <PlusImage x={parseInt(this.state.x)+158} y={parseInt(this.state.y)+95} handleClick={this.noHandleClickPlus}/>
+      {yesPlus()}
+      {noPlus()}
       </>
       )
 
 
     }
 }
-function Sidebar(props){
-  
-  const smsChange=(e)=>{
-      SMS_TEXT[props.current_sms_no]=e.target.value
-  
-    }
-    
-    
-
-  const contents=()=>{
-    if (props.type=='start'){
-      return (
-      <div>
-      <h3>Select Contacts</h3>
-        <select id="contacts" name="contacts" size="4" multiple>
-          <option value="contact1" selected>Contact 1</option>
-          <option value="contact2" selected>Contact 2</option>
-          <option value="contact3" selected>Contact 3</option>
-          <option value="contact4" selected>Contact 4</option>
-        </select>
-      </div>
-      )
-    }
-    if (props.type=="action"){
-        return (
-        <div>
-            <h3> SMS {props.current_sms_no}</h3>
-          <form>
-            <textarea  placeholder='sms_text' id='smstext' rows="6" maxLength="160" onChange={smsChange}  value={SMS_TEXT[props.current_sms_no]}></textarea>
-          </form>
-        </div>
-      )
-    }
-    if (props.type=="delay"){
-      return (<h3>Delay</h3>)
-    }
-    else{
-      return (<h3> Marked Complete</h3>)
-    }
-    }
 
 
-  
-  return (
-  <div className='sidebar'>
-     {contents()}
-  </div>
-  )
-}
 
 
-function Temp(){
+
+
+
+function VisualWorkflow(){
   const [modal_closed,setModalClose]=useState(true)
   const [action_trigger,setActionTrigger]=useState({})
   const [delay,setDelay]=useState({'type':'days','duration':1})
@@ -355,14 +350,12 @@ function Temp(){
         <button onClick={()=>actionYes('delay')} className='actionyesbutton'>Wait</button>
          <br />
         <br />
-         <h3>Or </h3>)
+         <h3>Or </h3>
          </>)
   }
   const ConditionInput = ()=>{
     return(
         <>
-          <br/>
-          <br/>
           <p> Read or Click SMS?</p>
           <form>
           <input type="radio" name="condition" value="Read" onClick={conditionTypeChange}/>
@@ -378,7 +371,7 @@ function Temp(){
         </>
       )
   }
-  const Modal=(props)=>{
+function Modal(props){
     if (modal_closed){
       return null
     }
@@ -415,6 +408,7 @@ function Temp(){
   const [flowchart2,updateFlowchart2]=useState([{x:1000, y:10,number:0,newxy:newxy,childs:0}])
   const [boxType,setBoxType]=useState('start')
   const [current_sms_no,setSmsNo]=useState(0)
+
   const rectangles = flowchart2.map((item,index)=> {
     if (index==0){
       return <Contacts x={item.x} y={item.y} number={index} newxy={newxy} type='start' setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
@@ -432,15 +426,16 @@ function Temp(){
       return <Condition x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} condition_type={item.condition_type}/>
     }
     else{
-      return <Rectangle2 x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
+      return <BasicBlock x={item.x} y={item.y} number={index} newxy={newxy} type={item.type} setBoxType={setBoxType} childs={item.childs} setSmsNo={setSmsNo}/>
     }
   })
+
 
 return(
   <>
   
   <Sidebar  type={boxType} current_sms_no={current_sms_no}/>
-  <Stage width={window.innerWidth} height={window.innerHeight*3} className='stage'>
+  <Stage width="2560" height={window.innerHeight*3} className='stage'>
   <Layer>
     {rectangles}
   </Layer>
@@ -452,7 +447,7 @@ return(
 
 function App() {
   return (
-  <Temp/>
+  <VisualWorkflow/>
   )
 
  }
